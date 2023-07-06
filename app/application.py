@@ -4,14 +4,21 @@ from pathlib import Path
 import click
 
 
-def compile_command(path: Path, recursive: bool, in_place: bool):
+def compile_command(path: Path, recursive: bool = True, in_place: bool = False, create_empty_init: bool = False):
     click.echo(click.format_filename(path))
+
+    if (create_empty_init and not path.is_dir()):
+        raise ValueError(
+            '--create-empty-init flag can only be used when path supplied is a directory.')
 
     path = Path(path)
     compileall(path, recursive)
 
     if (in_place):
         replace_py_with_pyc(path, recursive)
+
+    if (create_empty_init):
+        _create_init_file(dir=path)
 
 
 def compileall(path: Path, is_recursive: bool):
@@ -74,3 +81,11 @@ def _get_pycache_pyc_from_py(python_file_path: Path) -> Path | None:
     compiled_file = query[0]
 
     return compiled_file
+
+
+def _create_init_file(dir: Path) -> Path:
+    """For a given directory, create an empty __init__.py file and return the resulting file as a Path object."""
+    assert dir.is_dir()
+    file = (dir / '__init__.py')
+    file.touch()
+    return file

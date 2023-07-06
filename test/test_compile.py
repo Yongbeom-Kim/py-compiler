@@ -88,8 +88,8 @@ class TestCompileNestedFiles:
         assert expected_pycache_file.exists()
         for i in range(1, len(files)):
             assert files[i].exists()
-            assert unexpected_pycache_files[i-1] is None or \
-                not unexpected_pycache_files[i-1].exists()
+            assert unexpected_pycache_files[i - 1] is None or \
+                not unexpected_pycache_files[i - 1].exists()
 
     def test_compile_nested_by_dir_non_recursive(self, nested_py_file: Tuple[Path, List[Path]]):
         """Test compiling nested files by parent directory path (non-recursive), without replacing it."""
@@ -138,7 +138,23 @@ class TestCompileNestedFiles:
             assert file.with_suffix('.pyc').exists()
 
 
+class TestCreateEmptyInit:
+    def test_create_empty_init_by_file_fails(self, one_py_file: Tuple[Path, Path]):
+        dir, file = one_py_file
+        with pytest.raises(ValueError):
+            compile_command(file, create_empty_init=True)
+
+    def test_create_empty_init(self, one_py_file: Tuple[Path, Path]):
+        dir, file = one_py_file
+        compile_command(dir, create_empty_init=True)
+
+        assert file.exists()
+        assert _get_pycache_pyc_from_py(file).exists()
+        assert (dir / '__init__.py').exists()
+
 # UTILITY
+
+
 def rmtree(root: Path, missing_ok: bool):
     if (missing_ok and not root.exists()):
         return
