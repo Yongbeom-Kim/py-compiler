@@ -1,69 +1,86 @@
-from compileall import compile_dir, compile_file
+from compileall import compile_file
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 
 import click
 
 
-def compile_command(path: Path, recursive: bool = True, in_place: bool = False, create_empty_init: bool = False):
+def compile_command(path: Path, recursive: bool = False, in_place: bool = False, create_empty_init: bool = False, exclude_patterns: Tuple[str] = tuple()):
     if (create_empty_init and not path.is_dir()):
         raise ValueError(
             '--create-empty-init flag can only be used when path supplied is a directory.')
 
     path = Path(path)
     _clear_pycache_dir(path, missing_ok=True)
-    compileall(path, recursive)
+    compileall(path, recursive, exclude_patterns=exclude_patterns)
 
     if (in_place):
-        replace_py_with_pyc(path, recursive)
+        replace_py_with_pyc(path, recursive, exclude_patterns=exclude_patterns)
 
     if (create_empty_init):
         _create_init_file(dir=path)
 
 
-def compileall(path: Path, is_recursive: bool):
+def compileall(path: Path, is_recursive: bool, exclude_patterns: Tuple[str]):
     """
     Simple wrapper around python compileall package to compile .py to .pyc files.
 
     Note that created .pyc files are under the __pycache__ directory.
     """
     assert (path.exists())
-
     if (path.is_dir()):
-        max_recursion_levels = None if is_recursive else 0
-        compile_dir(path, maxlevels=max_recursion_levels)
-    elif (path.is_file()):
-        assert (path.suffix == '.py')
+        if (not is_recursive):
+            for file in path.glob('*.py'):
+                compileall(file, is_recursive=is_recursive,
+                           exclude_patterns=exclude_patterns)
+            return
+
+        for file in path.iterdir():
+            compileall(file, is_recursive=is_recursive,
+                       exclude_patterns=exclude_patterns)
+
+    elif (path.is_file() and path.suffix == '.py'):
+        for pattern in exclude_patterns:
+            if (path.match(pattern)):
+                click.echo(f'Skipping file \'{path}\'')
+                return
+        click.echo(f'Compiling file \'{path}\'')
         compile_file(path)
 
 
-def replace_py_with_pyc(path: Path, is_recursive: bool):
+def replace_py_with_pyc(path: Path, is_recursive: bool, exclude_patterns: Tuple[str]):
     """Replace .py with .pyc files """
     assert (path.exists())
 
     if (path.is_dir()):
-        _replace_py_with_pyc_dir(path, is_recursive)
+        _replace_py_with_pyc_dir(
+            path, is_recursive, exclude_patterns=exclude_patterns)
     elif (path.is_file()):
         assert (path.suffix == '.py')
-        _replace_py_with_pyc_file(path)
+        _replace_py_with_pyc_file(path, exclude_patterns=exclude_patterns)
 
     _clear_pycache_dir(path, missing_ok=True)
 
 
-def _replace_py_with_pyc_dir(path: Path, is_recursive: bool):
+def _replace_py_with_pyc_dir(path: Path, is_recursive: bool, exclude_patterns: Tuple[str]):
     for child in path.iterdir():
         if (child.is_dir() and is_recursive):
-            _replace_py_with_pyc_dir(child, is_recursive)
+            _replace_py_with_pyc_dir(
+                child, is_recursive, exclude_patterns=exclude_patterns)
             continue
 
         if (child.is_file() and child.suffix == '.py'):
-            _replace_py_with_pyc_file(child)
+            _replace_py_with_pyc_file(child, exclude_patterns=exclude_patterns)
             continue
 
 
-def _replace_py_with_pyc_file(python_file_path: Path):
+def _replace_py_with_pyc_file(python_file_path: Path, exclude_patterns: Tuple[str]):
     """Replace a .py file with its corresponding .pyc file in the __pycache__ directory."""
     assert (python_file_path.is_file() and python_file_path.suffix == '.py')
+    for pattern in exclude_patterns:
+        if python_file_path.match(pattern):
+            return
+
     compiled_file = _get_pycache_pyc_from_py(python_file_path)
     if (compiled_file is None):
         raise FileNotFoundError(
@@ -102,7 +119,6 @@ def _clear_pycache_dir(path: Path, missing_ok: bool) -> None:
 
 
 # UTILITY
-
 
 def rmtree(root: Path, missing_ok: bool):
     if (missing_ok and not root.exists()):
