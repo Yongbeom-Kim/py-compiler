@@ -7,7 +7,7 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 
 setup(
     name='py_compiler',
-    version='0.0.1',
+    version='0.0.2',
     author='Kim Yongbeom',
     author_email='yongbeom.kim@u.nus.edu',
     license='<the license you chose>',
@@ -15,7 +15,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url='https://github.com/Yongbeom-Kim/py-compiler',
-    py_modules=['py_compiler', 'app'],
+    py_modules=['py_compiler', 'app.application'],
     packages=find_packages(),
     install_requires=[requirements],
     python_requires='>=3.7',

@@ -54,3 +54,9 @@ docs/_build/
 
 # Pytest cache
 .pytest_cache/
+
+
+dist/
+build/
+venv/
+test_dist/
