@@ -7,7 +7,7 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 
 setup(
     name='py_compiler',
-    version='0.0.2',
+    version='0.0.3',
     author='Kim Yongbeom',
     author_email='yongbeom.kim@u.nus.edu',
     license='<the license you chose>',

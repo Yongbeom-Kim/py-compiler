@@ -1,3 +1,4 @@
+from pathlib import Path
 import click
 from app.application import compile_command
 
@@ -15,7 +16,7 @@ def cli():
 def compile(path, recursive, in_place, create_empty_init):
     click.echo(create_empty_init)
     compile_command(
-        path,
+        Path(path),
         recursive=recursive,
         in_place=in_place,
         create_empty_init=create_empty_init

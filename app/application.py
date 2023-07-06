@@ -12,6 +12,7 @@ def compile_command(path: Path, recursive: bool = True, in_place: bool = False, 
             '--create-empty-init flag can only be used when path supplied is a directory.')
 
     path = Path(path)
+    _clear_pycache_dir(path, missing_ok=True)
     compileall(path, recursive)
 
     if (in_place):
@@ -46,6 +47,8 @@ def replace_py_with_pyc(path: Path, is_recursive: bool):
     elif (path.is_file()):
         assert (path.suffix == '.py')
         _replace_py_with_pyc_file(path)
+
+    _clear_pycache_dir(path, missing_ok=False)
 
 
 def _replace_py_with_pyc_dir(path: Path, is_recursive: bool):
@@ -89,3 +92,26 @@ def _create_init_file(dir: Path) -> Path:
     file = (dir / '__init__.py')
     file.touch()
     return file
+
+
+def _clear_pycache_dir(path: Path, missing_ok: bool) -> Path:
+    """Given a directory or file, delete the __pycache__ folder."""
+    if (path.is_file()):
+        path = path.parent
+
+    rmtree(path / '__pycache__', missing_ok=missing_ok)
+
+
+# UTILITY
+
+
+def rmtree(root: Path, missing_ok: bool):
+    if (missing_ok and not root.exists()):
+        return
+    for p in root.iterdir():
+        if p.is_dir():
+            rmtree(p, missing_ok=missing_ok)
+        else:
+            p.unlink(missing_ok=True)
+
+    root.rmdir()

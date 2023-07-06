@@ -1,7 +1,7 @@
 from typing import List, Tuple
 import pytest
 from pathlib import Path
-from app.application import _get_pycache_pyc_from_py, compile_command
+from app.application import _get_pycache_pyc_from_py, compile_command, rmtree
 
 
 @pytest.fixture
@@ -151,17 +151,3 @@ class TestCreateEmptyInit:
         assert file.exists()
         assert _get_pycache_pyc_from_py(file).exists()
         assert (dir / '__init__.py').exists()
-
-# UTILITY
-
-
-def rmtree(root: Path, missing_ok: bool):
-    if (missing_ok and not root.exists()):
-        return
-    for p in root.iterdir():
-        if p.is_dir():
-            rmtree(p, missing_ok=missing_ok)
-        else:
-            p.unlink(missing_ok=True)
-
-    root.rmdir()
