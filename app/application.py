@@ -6,8 +6,6 @@ import click
 
 
 def compile_command(path: Path, recursive: bool = True, in_place: bool = False, create_empty_init: bool = False):
-    click.echo(click.format_filename(path))
-
     if (create_empty_init and not path.is_dir()):
         raise ValueError(
             '--create-empty-init flag can only be used when path supplied is a directory.')

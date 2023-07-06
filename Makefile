@@ -4,7 +4,7 @@ dev:
 	python setup.py develop
 
 dev-watch:
-	while true ; do ; python setup.py develop ; sleep 1 ; done
+	while true ; do python setup.py develop ; sleep 1 ; done
 
 publish-test: build
 	twine upload --repository testpypi --skip-existing dist/*
