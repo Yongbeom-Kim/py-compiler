@@ -1,4 +1,4 @@
-.PHONY: dev dev-watch publish build
+.PHONY: dev dev-watch publish publish-test build reinstall-test
 
 dev:
 	python setup.py develop
@@ -9,8 +9,14 @@ dev-watch:
 publish-test: build
 	twine upload --repository testpypi --skip-existing dist/*
 
+publish: build
+	twine upload --skip-existing dist/*
+
 build:
 	python setup.py sdist bdist_wheel
 
 reinstall-test:
-	pip uninstall py-compiler -y && pip install -i https://test.pypi.org/simple/ py-compiler
+	pip uninstall pycompall -y && pip install -i https://test.pypi.org/simple/ pycompall
+
+reinstall:
+	pip uninstall pycompall -y && pip install pycompall

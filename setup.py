@@ -6,7 +6,7 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
     requirements = fh.read()
 
 setup(
-    name='py_compiler',
+    name='pycompall',
     version='0.0.3',
     author='Kim Yongbeom',
     author_email='yongbeom.kim@u.nus.edu',
@@ -15,7 +15,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url='https://github.com/Yongbeom-Kim/py-compiler',
-    py_modules=['py_compiler', 'app.application'],
+    py_modules=['pycompall', 'app.application'],
     packages=find_packages(),
     install_requires=[requirements],
     python_requires='>=3.7',
@@ -25,6 +25,6 @@ setup(
     ],
     entry_points='''
         [console_scripts]
-        py_compile=py_compiler:cli
+        pycompall=pycompall:cli
     '''
 )
