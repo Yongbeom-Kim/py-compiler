@@ -14,7 +14,7 @@ setup(
     description='Wrapper around the python compileall utility.',
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url='<github url where the tool code will remain>',
+    url='https://github.com/Yongbeom-Kim/py-compiler',
     py_modules=['py_compiler', 'app'],
     packages=find_packages(),
     install_requires=[requirements],
