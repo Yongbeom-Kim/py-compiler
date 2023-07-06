@@ -1,5 +1,6 @@
 from compileall import compile_dir, compile_file
 from pathlib import Path
+from typing import Optional
 
 import click
 
@@ -48,7 +49,7 @@ def replace_py_with_pyc(path: Path, is_recursive: bool):
         assert (path.suffix == '.py')
         _replace_py_with_pyc_file(path)
 
-    _clear_pycache_dir(path, missing_ok=False)
+    _clear_pycache_dir(path, missing_ok=True)
 
 
 def _replace_py_with_pyc_dir(path: Path, is_recursive: bool):
@@ -73,7 +74,7 @@ def _replace_py_with_pyc_file(python_file_path: Path):
     compiled_file.rename(python_file_path.with_suffix('.pyc'))
 
 
-def _get_pycache_pyc_from_py(python_file_path: Path) -> Path | None:
+def _get_pycache_pyc_from_py(python_file_path: Path) -> Optional[Path]:
     """For a given .py file, get its corresponding .pyc file path in the __pycache__ directory."""
     assert (python_file_path.is_file() and python_file_path.suffix == '.py')
     pycache_dir = python_file_path.parent / '__pycache__'
@@ -94,7 +95,7 @@ def _create_init_file(dir: Path) -> Path:
     return file
 
 
-def _clear_pycache_dir(path: Path, missing_ok: bool) -> Path:
+def _clear_pycache_dir(path: Path, missing_ok: bool) -> None:
     """Given a directory or file, delete the __pycache__ folder."""
     if (path.is_file()):
         path = path.parent
