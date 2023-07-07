@@ -85,11 +85,11 @@ class TestCompileNestedFiles:
             _get_pycache_pyc_from_py(file) for file in files[1:]]
 
         assert files[0].exists()
-        assert expected_pycache_file.exists()
-        for i in range(1, len(files)):
-            assert files[i].exists()
-            assert unexpected_pycache_files[i - 1] is None or \
-                not unexpected_pycache_files[i - 1].exists()
+        assert expected_pycache_file is not None and expected_pycache_file.exists()
+        for file, unexpected_pycache_file in zip(files[1:], unexpected_pycache_files):
+            assert file.exists()
+            assert unexpected_pycache_file is None or \
+                not unexpected_pycache_file.exists()
 
     def test_compile_nested_by_dir_non_recursive(self, nested_py_file: Tuple[Path, List[Path]]):
         """Test compiling nested files by parent directory path (non-recursive), without replacing it."""
@@ -99,8 +99,8 @@ class TestCompileNestedFiles:
             file) for file in dir.glob('*.py')]
         for file in files:
             assert file.exists()
-        for file in expected_pycache_files:
-            assert file.exists()
+        for pycache_file in expected_pycache_files:
+            assert pycache_file is not None and pycache_file.exists()
 
     def test_compile_nested_by_dir_recursive(self, nested_py_file: Tuple[Path, List[Path]]):
         """Test compiling nested files by parent directory path (recursive), without replacing it."""
@@ -111,8 +111,8 @@ class TestCompileNestedFiles:
 
         for file in files:
             assert file.exists()
-        for file in expected_pycache_files:
-            assert file.exists()
+        for pycache_file in expected_pycache_files:
+            assert pycache_file is not None and pycache_file.exists()
 
     def test_compile_nested_by_dir_non_recursive_in_place(self, nested_py_file: Tuple[Path, List[Path]]):
         """Test compiling nested files by parent directory path (non-recursive), replacing it."""
@@ -148,16 +148,17 @@ class TestCreateEmptyInit:
         compile_command(dir, create_empty_init=True)
 
         assert file.exists()
-        assert _get_pycache_pyc_from_py(file).exists()
+        expected_pycache_file = _get_pycache_pyc_from_py(file)
+        assert expected_pycache_file is not None and expected_pycache_file.exists()
         assert (dir / '__init__.py').exists()
 
 
-class TestExcludePattern:
+class TestExcludeFilePattern:
     def test_exclude_all_pattern(self, nested_py_file: Tuple[Path, List[Path]]):
         dir, files = nested_py_file
         pattern = '*.py'
         compile_command(dir, recursive=True, in_place=True,
-                        exclude_patterns=(pattern,))
+                        exclude_files=(pattern,))
         for file in files:
             if (file.match(pattern)):
                 assert file.exists()
@@ -170,7 +171,7 @@ class TestExcludePattern:
         dir, files = nested_py_file
         pattern = 'one.py'
         compile_command(dir, recursive=True, in_place=True,
-                        exclude_patterns=(pattern,))
+                        exclude_files=(pattern,))
         for file in files:
             if (file.match(pattern)):
                 assert file.exists()
@@ -178,3 +179,47 @@ class TestExcludePattern:
             else:
                 assert not file.exists()
                 assert file.with_suffix('.pyc').exists()
+
+
+class TestExcludeDirPattern:
+    def test_exclude_all_pattern(self, nested_py_file: Tuple[Path, List[Path]]):
+        dir, files = nested_py_file
+        pattern = '*'
+        compile_command(dir, recursive=True, in_place=True, create_empty_init=True,
+                        exclude_dirs=(pattern,))
+        for file in files:
+            dir = file.parent
+            init_file = dir / '__init__.py'
+            assert not init_file.exists()
+            assert file.exists()
+            assert not file.with_suffix('.pyc').exists()
+
+    def test_exclude_one_pattern(self, nested_py_file: Tuple[Path, List[Path]]):
+        dir, files = nested_py_file
+        print(dir)
+        pattern = 'two'
+        compile_command(dir, recursive=True, in_place=True, create_empty_init=True,
+                        exclude_dirs=(pattern,))
+        for file in files:
+            if 'two' in str(file):
+                assert file.exists()
+                assert not file.with_suffix('.pyc').exists()
+            else:
+                assert not file.exists()
+                assert file.with_suffix('.pyc').exists()
+
+        init_file = dir / '__init__.py'
+        assert init_file.exists()
+
+    def test_exclude_base_pattern(self, nested_py_file: Tuple[Path, List[Path]]):
+        dir, files = nested_py_file
+        print(dir)
+        pattern = 'temp'
+        compile_command(dir, recursive=True, in_place=True,
+                        exclude_dirs=(pattern,))
+        for file in files:
+            assert file.exists()
+            assert not file.with_suffix('.pyc').exists()
+
+        init_file = dir / '__init__.py'
+        assert not init_file.exists()
