@@ -13,7 +13,8 @@ def compile_command(
         in_place: bool = False,
         create_empty_init: bool = False,
         exclude_files: PathPatterns = tuple(),
-        exclude_dirs: PathPatterns = tuple()
+        exclude_dirs: PathPatterns = tuple(),
+        ignore_symlinks: bool = False
 ):
     if is_matching_file(path, exclude_files):
         click.echo(f'Skipping file \'{path}\'')
@@ -21,6 +22,10 @@ def compile_command(
 
     if is_matching_dir(path, exclude_dirs):
         click.echo(f'Skipping directory \'{path}\'')
+        return
+
+    if (ignore_symlinks and path.is_symlink()):
+        click.echo(f'Skipping symlink \'{path}\'')
         return
 
     if (create_empty_init and not path.is_dir()):
@@ -32,37 +37,47 @@ def compile_command(
         path,
         recursive,
         exclude_files=exclude_files,
-        exclude_dirs=exclude_dirs
+        exclude_dirs=exclude_dirs,
+        ignore_symlinks=ignore_symlinks
     )
 
     if (in_place):
         replace_py_with_pyc(path, recursive,
                             exclude_files=exclude_files,
-                            exclude_dirs=exclude_dirs)
+                            exclude_dirs=exclude_dirs,
+                            ignore_symlinks=ignore_symlinks)
 
     if (create_empty_init):
         _create_init_file(dir=path)
 
 
-def compileall(path: Path, is_recursive: bool, exclude_files: PathPatterns, exclude_dirs: PathPatterns):
+def compileall(path: Path, is_recursive: bool, exclude_files: PathPatterns, exclude_dirs: PathPatterns, ignore_symlinks: bool):
     """
     Simple wrapper around python compileall package to compile .py to .pyc files.
 
     Note that created .pyc files are under the __pycache__ directory.
     """
-    assert (path.exists())
+    if (ignore_symlinks and path.is_symlink()):
+        click.echo(f'Skipping symlink \'{path}\'')
+        return
+
+    if (not path.exists()):
+        raise FileNotFoundError(f'Path \'{path}\' does not exist.')
+
     if (path.is_dir() and not is_recursive):
         for file in path.glob('*.py'):
             compileall(file, is_recursive=is_recursive,
                        exclude_files=exclude_files,
-                       exclude_dirs=exclude_dirs)
+                       exclude_dirs=exclude_dirs,
+                       ignore_symlinks=ignore_symlinks)
         return
 
     if (path.is_dir() and is_recursive):
         for file in path.iterdir():
             compileall(file, is_recursive=is_recursive,
                        exclude_files=exclude_files,
-                       exclude_dirs=exclude_dirs)
+                       exclude_dirs=exclude_dirs,
+                       ignore_symlinks=ignore_symlinks)
         return
 
     if (path.is_file() and path.suffix == '.py'):
@@ -74,27 +89,42 @@ def compileall(path: Path, is_recursive: bool, exclude_files: PathPatterns, excl
         compile_file(path, quiet=1)
 
 
-def replace_py_with_pyc(path: Path, is_recursive: bool, exclude_files: PathPatterns, exclude_dirs: PathPatterns):
+def replace_py_with_pyc(path: Path, is_recursive: bool, exclude_files: PathPatterns, exclude_dirs: PathPatterns, ignore_symlinks: bool):
     """Replace .py with .pyc files """
-    assert (path.exists())
+    if (ignore_symlinks and path.is_symlink()):
+        click.echo(f'Skipping symlink \'{path}\'')
+        return
+
+    if (not path.exists()):
+        raise FileNotFoundError(f'Path \'{path}\' does not exist.')
 
     if (path.is_dir()):
         _replace_py_with_pyc_dir(
             path, is_recursive,
             exclude_files=exclude_files,
-            exclude_dirs=exclude_dirs)
+            exclude_dirs=exclude_dirs,
+            ignore_symlinks=ignore_symlinks)
 
     elif (path.is_file()):
         assert (path.suffix == '.py')
         _replace_py_with_pyc_file(path,
                                   exclude_files=exclude_files,
-                                  exclude_dirs=exclude_dirs)
+                                  exclude_dirs=exclude_dirs,
+                                  ignore_symlinks=ignore_symlinks)
 
     _clear_pycache_dir(path, missing_ok=True)
 
 
-def _replace_py_with_pyc_dir(path: Path, is_recursive: bool, exclude_files: PathPatterns, exclude_dirs: PathPatterns):
-    assert path.exists() and path.is_dir()
+def _replace_py_with_pyc_dir(path: Path, is_recursive: bool, exclude_files: PathPatterns, exclude_dirs: PathPatterns, ignore_symlinks: bool):
+
+    if (ignore_symlinks and path.is_symlink()):
+        click.echo(f'Skipping symlink \'{path}\'')
+        return
+
+    if (not path.exists()):
+        raise FileNotFoundError(f'Path \'{path}\' does not exist.')
+
+    assert path.is_dir()
 
     if (is_matching_dir(path, exclude_dirs)):
         click.echo(f'Skipping directory \'{path}\'')
@@ -105,18 +135,24 @@ def _replace_py_with_pyc_dir(path: Path, is_recursive: bool, exclude_files: Path
             _replace_py_with_pyc_dir(
                 child, is_recursive,
                 exclude_files=exclude_files,
-                exclude_dirs=exclude_dirs)
+                exclude_dirs=exclude_dirs,
+                ignore_symlinks=ignore_symlinks)
             continue
 
         if (child.is_file() and child.suffix == '.py'):
             _replace_py_with_pyc_file(child,
                                       exclude_files=exclude_files,
-                                      exclude_dirs=exclude_dirs)
+                                      exclude_dirs=exclude_dirs,
+                                      ignore_symlinks=ignore_symlinks)
             continue
 
 
-def _replace_py_with_pyc_file(python_file_path: Path, exclude_files: PathPatterns, exclude_dirs: PathPatterns):
+def _replace_py_with_pyc_file(python_file_path: Path, exclude_files: PathPatterns, exclude_dirs: PathPatterns, ignore_symlinks: bool):
     """Replace a .py file with its corresponding .pyc file in the __pycache__ directory."""
+    if (ignore_symlinks and python_file_path.is_symlink()):
+        click.echo(f'Skipping symlink \'{python_file_path}\'')
+        return
+
     assert (python_file_path.is_file() and python_file_path.suffix == '.py')
 
     if is_matching_file(python_file_path, exclude_files):
