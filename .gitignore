@@ -60,3 +60,5 @@ dist/
 build/
 venv/
 test_dist/
+
+.vscode/

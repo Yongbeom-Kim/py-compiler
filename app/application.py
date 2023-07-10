@@ -1,87 +1,80 @@
 from compileall import compile_file
 from pathlib import Path
 from typing import Optional, Tuple
-
+from attrs import define, field
 import click
 
 PathPatterns = Tuple[str, ...]
 
 
+@define
+class CompilationOptions:
+    recursive: bool = field(default=False)
+    in_place: bool = field(default=False)
+    create_empty_init: bool = field(default=False)
+    exclude_files: PathPatterns = field(default=tuple())
+    exclude_dirs: PathPatterns = field(default=tuple())
+    ignore_symlinks: bool = field(default=False)
+
+
 def compile_command(
         path: Path,
-        recursive: bool = False,
-        in_place: bool = False,
-        create_empty_init: bool = False,
-        exclude_files: PathPatterns = tuple(),
-        exclude_dirs: PathPatterns = tuple(),
-        ignore_symlinks: bool = False
+        options: CompilationOptions
 ):
-    if is_matching_file(path, exclude_files):
+    if is_matching_file(path, options.exclude_files):
         click.echo(f'Skipping file \'{path}\'')
         return
 
-    if is_matching_dir(path, exclude_dirs):
+    if is_matching_dir(path, options.exclude_dirs):
         click.echo(f'Skipping directory \'{path}\'')
         return
 
-    if (ignore_symlinks and path.is_symlink()):
+    if (options.ignore_symlinks and path.is_symlink()):
         click.echo(f'Skipping symlink \'{path}\'')
         return
 
-    if (create_empty_init and not path.is_dir()):
+    if (options.create_empty_init and not path.is_dir()):
         raise ValueError(
             f'--create-empty-init flag can only be used when path supplied is a directory, but got {path}.')
 
     _clear_pycache_dir(path, missing_ok=True)
     compileall(
         path,
-        recursive,
-        exclude_files=exclude_files,
-        exclude_dirs=exclude_dirs,
-        ignore_symlinks=ignore_symlinks
+        options
     )
 
-    if (in_place):
-        replace_py_with_pyc(path, recursive,
-                            exclude_files=exclude_files,
-                            exclude_dirs=exclude_dirs,
-                            ignore_symlinks=ignore_symlinks)
+    if (options.in_place):
+        replace_py_with_pyc(path, options)
 
-    if (create_empty_init):
+    if (options.create_empty_init):
         _create_init_file(dir=path)
 
 
-def compileall(path: Path, is_recursive: bool, exclude_files: PathPatterns, exclude_dirs: PathPatterns, ignore_symlinks: bool):
+def compileall(path: Path, options: CompilationOptions):
     """
     Simple wrapper around python compileall package to compile .py to .pyc files.
 
     Note that created .pyc files are under the __pycache__ directory.
     """
-    if (ignore_symlinks and path.is_symlink()):
+    if (options.ignore_symlinks and path.is_symlink()):
         click.echo(f'Skipping symlink \'{path}\'')
         return
 
     if (not path.exists()):
         raise FileNotFoundError(f'Path \'{path}\' does not exist.')
 
-    if (path.is_dir() and not is_recursive):
+    if (path.is_dir() and not options.recursive):
         for file in path.glob('*.py'):
-            compileall(file, is_recursive=is_recursive,
-                       exclude_files=exclude_files,
-                       exclude_dirs=exclude_dirs,
-                       ignore_symlinks=ignore_symlinks)
+            compileall(file, options)
         return
 
-    if (path.is_dir() and is_recursive):
+    if (path.is_dir() and options.recursive):
         for file in path.iterdir():
-            compileall(file, is_recursive=is_recursive,
-                       exclude_files=exclude_files,
-                       exclude_dirs=exclude_dirs,
-                       ignore_symlinks=ignore_symlinks)
+            compileall(file, options)
         return
 
     if (path.is_file() and path.suffix == '.py'):
-        if is_matching_file(path, exclude_files):
+        if is_matching_file(path, options.exclude_files):
             click.echo(f'Skipping file \'{path}\'')
             return
 
@@ -89,9 +82,9 @@ def compileall(path: Path, is_recursive: bool, exclude_files: PathPatterns, excl
         compile_file(path, quiet=1)
 
 
-def replace_py_with_pyc(path: Path, is_recursive: bool, exclude_files: PathPatterns, exclude_dirs: PathPatterns, ignore_symlinks: bool):
+def replace_py_with_pyc(path: Path, options: CompilationOptions):
     """Replace .py with .pyc files """
-    if (ignore_symlinks and path.is_symlink()):
+    if (options.ignore_symlinks and path.is_symlink()):
         click.echo(f'Skipping symlink \'{path}\'')
         return
 
@@ -100,24 +93,18 @@ def replace_py_with_pyc(path: Path, is_recursive: bool, exclude_files: PathPatte
 
     if (path.is_dir()):
         _replace_py_with_pyc_dir(
-            path, is_recursive,
-            exclude_files=exclude_files,
-            exclude_dirs=exclude_dirs,
-            ignore_symlinks=ignore_symlinks)
+            path, options)
 
     elif (path.is_file()):
         assert (path.suffix == '.py')
-        _replace_py_with_pyc_file(path,
-                                  exclude_files=exclude_files,
-                                  exclude_dirs=exclude_dirs,
-                                  ignore_symlinks=ignore_symlinks)
+        _replace_py_with_pyc_file(path, options)
 
     _clear_pycache_dir(path, missing_ok=True)
 
 
-def _replace_py_with_pyc_dir(path: Path, is_recursive: bool, exclude_files: PathPatterns, exclude_dirs: PathPatterns, ignore_symlinks: bool):
+def _replace_py_with_pyc_dir(path: Path, options: CompilationOptions):
 
-    if (ignore_symlinks and path.is_symlink()):
+    if (options.ignore_symlinks and path.is_symlink()):
         click.echo(f'Skipping symlink \'{path}\'')
         return
 
@@ -126,36 +113,30 @@ def _replace_py_with_pyc_dir(path: Path, is_recursive: bool, exclude_files: Path
 
     assert path.is_dir()
 
-    if (is_matching_dir(path, exclude_dirs)):
+    if (is_matching_dir(path, options.exclude_dirs)):
         click.echo(f'Skipping directory \'{path}\'')
         return
 
     for child in path.iterdir():
-        if (child.is_dir() and is_recursive):
+        if (child.is_dir() and options.recursive):
             _replace_py_with_pyc_dir(
-                child, is_recursive,
-                exclude_files=exclude_files,
-                exclude_dirs=exclude_dirs,
-                ignore_symlinks=ignore_symlinks)
+                child, options)
             continue
 
         if (child.is_file() and child.suffix == '.py'):
-            _replace_py_with_pyc_file(child,
-                                      exclude_files=exclude_files,
-                                      exclude_dirs=exclude_dirs,
-                                      ignore_symlinks=ignore_symlinks)
+            _replace_py_with_pyc_file(child, options)
             continue
 
 
-def _replace_py_with_pyc_file(python_file_path: Path, exclude_files: PathPatterns, exclude_dirs: PathPatterns, ignore_symlinks: bool):
+def _replace_py_with_pyc_file(python_file_path: Path, options: CompilationOptions):
     """Replace a .py file with its corresponding .pyc file in the __pycache__ directory."""
-    if (ignore_symlinks and python_file_path.is_symlink()):
+    if (options.ignore_symlinks and python_file_path.is_symlink()):
         click.echo(f'Skipping symlink \'{python_file_path}\'')
         return
 
     assert (python_file_path.is_file() and python_file_path.suffix == '.py')
 
-    if is_matching_file(python_file_path, exclude_files):
+    if is_matching_file(python_file_path, options.exclude_files):
         click.echo(f'Skipping file \'{python_file_path}\'')
         return
 
