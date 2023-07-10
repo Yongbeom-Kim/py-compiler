@@ -1,4 +1,9 @@
-# DEPRECATED for pyproject.toml
+
+from setuptools import setup
+
+setup()
+
+"""Below is DEPRECATED for pyproject.toml"""
 # from setuptools import setup, find_packages
 
 # with open("README.md", "r", encoding="utf-8") as fh:

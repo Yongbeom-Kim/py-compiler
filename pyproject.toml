@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name= "pycompall"
-version = "0.1.13"
+version = "0.1.15"
 authors = [
     {name = "Kim Yongbeom", email = "yongbeom.kim@u.nus.edu"}
 ]
@@ -31,3 +31,7 @@ pycompall="pycompall:cli"
 
 [project.entry-points."application"]
 application = 'app.application'
+
+[tool.setuptools]
+packages = ["app"]
+py-modules = ["pycompall"]
