@@ -1,10 +1,10 @@
 .PHONY: dev dev-watch publish publish-test build reinstall-test
 
 dev:
-	python3 -m pip install --user -e .
+	sudo python3 -m pip install --user -e .
 
 dev-watch:
-	while true ; do python3 setup.py develop ; sleep 1 ; done
+	while true ; do sudo python3 -m pip install --user -e . ; sleep 1 ; done
 
 publish-test: build
 	twine upload --repository testpypi --skip-existing dist/*
@@ -13,7 +13,7 @@ publish: build
 	twine upload --skip-existing dist/*
 
 build:
-	python3 setup.py sdist bdist_wheel
+	python3 -m build
 
 reinstall-test:
 	pip uninstall pycompall -y && pip install -i https://test.pypi.org/simple/ pycompall
