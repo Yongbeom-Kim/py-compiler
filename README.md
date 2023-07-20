@@ -46,3 +46,11 @@ Exclude pattern(s) for directories to be excluded during compilation and replace
 #### `--ignore-symlinks`
 
 Sometimes symlinks causes problems. Enable this flag to ignore symlinks.
+
+#### `--optimize`
+
+Optimize bytecode. Corresponds to optimize=1 in the [Python `compile` API](https://docs.python.org/3/library/functions.html#compile).
+
+#### `--overly-optimize`
+
+Overly optimize bytecode. Corresponds to optimize=2 in the [Python `compile` API](https://docs.python.org/3/library/functions.html#compile).
