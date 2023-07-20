@@ -15,6 +15,7 @@ class CompilationOptions:
     exclude_files: PathPatterns = field(default=tuple())
     exclude_dirs: PathPatterns = field(default=tuple())
     ignore_symlinks: bool = field(default=False)
+    optimize: int = field(default=0)
 
 
 def compile_command(
@@ -79,7 +80,7 @@ def compileall(path: Path, options: CompilationOptions):
             return
 
         click.echo(f'Compiling file \'{path}\'')
-        compile_file(path, quiet=1)
+        compile_file(path, quiet=1, optimize=options.optimize)
 
 
 def replace_py_with_pyc(path: Path, options: CompilationOptions):
